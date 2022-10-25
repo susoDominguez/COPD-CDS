@@ -1,6 +1,59 @@
 version: '3.8'
 services:
-
+  proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cds_hooks_ms
+    container_name: hooks_manager_service
+    restart: unless-stopped
+    ports:
+      - "80:3000"
+    environment:
+    #mongodb container name
+      - MONGODB_HOST=mongodb
+      #mongodb container port numnber
+      - MONGODB_PORT=27017
+      #collection name for logs
+      - MONGODB_LOGS=hooks_ms_log
+      #name of CIG formalism involved 
+      #(as there could be more than one distinct formalism).
+      #This is also the name of the MongoDB collection to store
+      #hook processing documents associated with this formalism
+      - MONGODB_CIG_MODEL=tmr
+      #name of mongoDB collection for processing hooks which
+      #do not access TMR knowledge (or any other formalism) to
+      #produce a result
+      - MONGODB_NONCIG_DB_NAME=non-cig
+      #name of cds services manager container and associted port
+      - CDS_SERVICES_MS_HOST=services_manager_service
+      - CDS_SERVICES_MS_PORT=3010
+      #URL of SNOMED CT server
+      - SNOMEDCT_BASE_URL=snowstorm-fhir.snomedtools.org
+      #Port number of this microservice
+      - PROXY_PORT=3000
+    links:
+      - db
+    depends_on:
+      - db
+  mongodb:
+    image: mongo:latest
+    restart: unless-stopped
+    ports: 
+        - "27012:27017"
+    container_name: mongodb
+    volumes:
+      - ~/mongodata:/data/db
+    networks:
+      - dmims
+  
+  mongo-express:
+    container_name: mongo-express
+    image: mongo-express
+    ports: 
+    - '8083:8081'
+    networks:
+    - dmims
   busybox:
     image: busybox
     container_name: fuseki-data
@@ -56,7 +109,7 @@ services:
       - FUSEKI_PASSWORD=road2h
     depends_on:
       - reasoner_app
-reasoner_app:
+  reasoner_app:
     build: 
       context: ./backend/
       dockerfile: Dockerfile
@@ -79,71 +132,8 @@ volumes:
   drug_volume: {}
 networks:
   cig_handler: {}
-  CDS_hooks_manager:
-    build: .
-    image: road2h_hooks_mgmt
-    container_name: dmims
-    restart: unless-stopped
-    external_links:
-      - mongodb
-    ports:
-      - "80:3000"
-    environment:
-      - MONGODB_HOST=mongodb
-      - MONGODB_PORT=27017
-      - MONGODB_DB=road2h
-      - MONGODB_LOGS_PORT=27017
-      - MONGODB_LOGS=logs
-      - PORT=3000
-      - SUBCIG_COLLECTION=copd-cig-parameters
-      - TEMPLATES=dss-templates
-      - TEMPLATES_COPD=dss-templates
-      - CDS_SERVICES=cds-services
-      - TREATMENT_REVIEW_ROUTE=copd-assess
-      - TREATMENT_SELECT_ROUTE=copd-careplan-select
-      - TMR_HOST=tmrweb
-      - TMR_PORT=8888
-      - TMR_DB=tmrweb
-      - TMR_CIG_CREATE=guideline/create
-      - TMR_CIG_DELETE=guideline/delete
-      - TMR_CIG_ADD=guidelines/add
-      - TMR_CIG_GET=guidelines/cig/get
-      - TMR_CIGS_INTERACTIONS=guidelines/interactions
-      - ARGUMENTATION_ENGINE_URL=aba-plus-g.herokuapp.com/generate_explanations
-      - DMIMS_HOST=localhost
-      - DMIMS_PORT=4000
-      - DMIMS_PATH=tmr
-    depends_on: 
-      - mongodb
-    #  - .:/home/node/app
-    #  - node_modules:/home/node/app/node_modules
-    networks:
-      - dmims
-      - tmrwebx_cig_handler
-    #command: ./wait-for.sh db:27017 -- /home/node/app/node_modules/.bin/nodemon app.js
-  
-  mongodb:
-    image: mongo:latest
-    restart: unless-stopped
-    ports: 
-        - "27012:27017"
-    container_name: mongodb
-    volumes:
-      - ~/mongodata:/data/db
-    networks:
-      - dmims
-  
-  mongo-express:
-    container_name: mongo-express
-    image: mongo-express
-    ports: 
-    - '8083:8081'
-    networks:
-    - dmims
-    
-networks:
   dmims: {}
-  tmrwebx_cig_handler:
-    external: true
+  #tmrwebx_cig_handler:
+   # external: true
 #volumes: 
  # - ~/mongodata:
