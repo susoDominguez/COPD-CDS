@@ -1,0 +1,149 @@
+version: '3.8'
+services:
+
+  busybox:
+    image: busybox
+    container_name: fuseki-data
+    #restart: unless-stopped
+    networks: 
+      - cig_handler
+    volumes: 
+      - "drug_volume:/fuseki_store"
+  fuseki_store:
+    build: 
+      context: ./TMRWebX/fuseki/
+      dockerfile: Dockerfile
+    image: fuseki_store
+    container_name: store_ms
+    restart: unless-stopped
+    #expose: 3030
+    ports: 
+      - "3030:3030"
+    networks: 
+      - cig_handler
+    #volumes_from: 
+    #  - drug_volume
+    environment:
+      - ADMIN_PASSWORD=road2h
+      - TDB=2
+      - FUSEKI_DATASET_1=careActions
+      - FUSEKI_DATASET_2=transitions
+      - FUSEKI_DATASET_3=beliefs
+      - FUSEKI_DATASET_4=CIG-COPD
+      - JVM_ARGS=-Xmx2g
+    depends_on: 
+      - busybox
+
+  interaction_app:
+    build: 
+      context: ./TMRWebX/api/
+      dockerfile: Dockerfile
+    image: interaction_ms
+    container_name: interaction_ms
+    restart: unless-stopped
+    #expose: 
+    #  - 8888
+    ports:
+      - "8888:8888"
+    networks: 
+      - cig_handler
+    environment:
+      - JENA_HOST=fuseki
+      - PROLOG_HOST=swipl
+      - JENA_PORT=3030
+      - PROLOG_PORT=1234
+      - PORT=8888
+      - FUSEKI_PASSWORD=road2h
+    depends_on:
+      - reasoner_app
+reasoner_app:
+    build: 
+      context: ./backend/
+      dockerfile: Dockerfile
+    image: road2h-swipl
+    container_name: swipl
+    restart: unless-stopped
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    #expose:
+    #  - 1234
+    ports: 
+      - "1234:1234"
+    networks: 
+      - cig_handler
+    environment:
+      - FUSEKI_HOST_PORT=http://fuseki:3030/
+    depends_on: 
+      - fuseki
+volumes:
+  drug_volume: {}
+networks:
+  cig_handler: {}
+  CDS_hooks_manager:
+    build: .
+    image: road2h_hooks_mgmt
+    container_name: dmims
+    restart: unless-stopped
+    external_links:
+      - mongodb
+    ports:
+      - "80:3000"
+    environment:
+      - MONGODB_HOST=mongodb
+      - MONGODB_PORT=27017
+      - MONGODB_DB=road2h
+      - MONGODB_LOGS_PORT=27017
+      - MONGODB_LOGS=logs
+      - PORT=3000
+      - SUBCIG_COLLECTION=copd-cig-parameters
+      - TEMPLATES=dss-templates
+      - TEMPLATES_COPD=dss-templates
+      - CDS_SERVICES=cds-services
+      - TREATMENT_REVIEW_ROUTE=copd-assess
+      - TREATMENT_SELECT_ROUTE=copd-careplan-select
+      - TMR_HOST=tmrweb
+      - TMR_PORT=8888
+      - TMR_DB=tmrweb
+      - TMR_CIG_CREATE=guideline/create
+      - TMR_CIG_DELETE=guideline/delete
+      - TMR_CIG_ADD=guidelines/add
+      - TMR_CIG_GET=guidelines/cig/get
+      - TMR_CIGS_INTERACTIONS=guidelines/interactions
+      - ARGUMENTATION_ENGINE_URL=aba-plus-g.herokuapp.com/generate_explanations
+      - DMIMS_HOST=localhost
+      - DMIMS_PORT=4000
+      - DMIMS_PATH=tmr
+    depends_on: 
+      - mongodb
+    #  - .:/home/node/app
+    #  - node_modules:/home/node/app/node_modules
+    networks:
+      - dmims
+      - tmrwebx_cig_handler
+    #command: ./wait-for.sh db:27017 -- /home/node/app/node_modules/.bin/nodemon app.js
+  
+  mongodb:
+    image: mongo:latest
+    restart: unless-stopped
+    ports: 
+        - "27012:27017"
+    container_name: mongodb
+    volumes:
+      - ~/mongodata:/data/db
+    networks:
+      - dmims
+  
+  mongo-express:
+    container_name: mongo-express
+    image: mongo-express
+    ports: 
+    - '8083:8081'
+    networks:
+    - dmims
+    
+networks:
+  dmims: {}
+  tmrwebx_cig_handler:
+    external: true
+#volumes: 
+ # - ~/mongodata:
