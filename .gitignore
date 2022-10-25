@@ -1,8 +1,9 @@
 ### Project specific ###
 
 *.pyc
-./*
+cds_hooks_manager/
 TMRWebX/
+cds-services-manager/
 api/doc/
 proxy/certs/*
 !proxy/certs/gen-ca-cert.sh
