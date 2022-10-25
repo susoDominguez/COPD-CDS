@@ -2,7 +2,7 @@
 
 *.pyc
 ./*
-./TMRWebX/
+TMRWebX/
 api/doc/
 proxy/certs/*
 !proxy/certs/gen-ca-cert.sh
