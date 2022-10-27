@@ -1,83 +1,26 @@
 version: '3.8'
 services:
-  proxy:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: cds_hooks_ms
-    container_name: hooks_manager_service
-    restart: unless-stopped
-    ports:
-      - "80:3000"
-    environment:
-    #mongodb container name
-      - MONGODB_HOST=mongodb
-      #mongodb container port numnber
-      - MONGODB_PORT=27017
-      #collection name for logs
-      - MONGODB_LOGS=hooks_ms_log
-      #name of CIG formalism involved 
-      #(as there could be more than one distinct formalism).
-      #This is also the name of the MongoDB collection to store
-      #hook processing documents associated with this formalism
-      - MONGODB_CIG_MODEL=tmr
-      #name of mongoDB collection for processing hooks which
-      #do not access TMR knowledge (or any other formalism) to
-      #produce a result
-      - MONGODB_NONCIG_DB_NAME=non-cig
-      #name of cds services manager container and associted port
-      - CDS_SERVICES_MS_HOST=services_manager_service
-      - CDS_SERVICES_MS_PORT=3010
-      #URL of SNOMED CT server
-      - SNOMEDCT_BASE_URL=snowstorm-fhir.snomedtools.org
-      #Port number of this microservice
-      - PROXY_PORT=3000
-    links:
-      - db
-    depends_on:
-      - db
-  mongodb:
-    image: mongo:latest
-    restart: unless-stopped
-    ports: 
-        - "27012:27017"
-    container_name: mongodb
-    volumes:
-      - ~/mongodata:/data/db
-    networks:
-      - dmims
-  
-  mongo-express:
-    container_name: mongo-express
-    image: mongo-express
-    ports: 
-    - '8083:8081'
-    networks:
-    - dmims
   busybox:
     image: busybox
     container_name: fuseki-data
-    #restart: unless-stopped
     networks: 
-      - cig_handler
+      - cig_interaction
     volumes: 
-      - "drug_volume:/fuseki_store"
-  fuseki_store:
+      - "drug_volume:/fuseki"
+  store_app:
     build: 
       context: ./TMRWebX/fuseki/
       dockerfile: Dockerfile
-    image: fuseki_store
-    container_name: store_ms
+    image: road2h_store_ms
+    container_name: store_service
     restart: unless-stopped
-    #expose: 3030
+    env_file: .env
     ports: 
-      - "3030:3030"
+      - "${CIG_STORE_PORT}:3030"
     networks: 
-      - cig_handler
-    #volumes_from: 
-    #  - drug_volume
+      - cig_interaction
     environment:
-      - ADMIN_PASSWORD=road2h
+      - ADMIN_PASSWORD=${CIG_STORE_PWD}
       - TDB=2
       - FUSEKI_DATASET_1=careActions
       - FUSEKI_DATASET_2=transitions
@@ -86,54 +29,128 @@ services:
       - JVM_ARGS=-Xmx2g
     depends_on: 
       - busybox
-
   interaction_app:
     build: 
       context: ./TMRWebX/api/
       dockerfile: Dockerfile
-    image: interaction_ms
-    container_name: interaction_ms
+    image: road2h-interaction_ms
+    container_name: interaction_service
     restart: unless-stopped
-    #expose: 
-    #  - 8888
+    env_file: .env
     ports:
-      - "8888:8888"
+      - "${CIG_INTERACTION_PORT}:8888"
     networks: 
-      - cig_handler
+      - cig_interaction
     environment:
-      - JENA_HOST=fuseki
-      - PROLOG_HOST=swipl
-      - JENA_PORT=3030
-      - PROLOG_PORT=1234
-      - PORT=8888
-      - FUSEKI_PASSWORD=road2h
+      - JENA_PORT=${CIG_STORE_PORT}
+      #Interaction container port
+      - PORT=${CIG_INTERACTION_PORT}
+      #password to access Store container Jena database
+      - FUSEKI_PASSWORD=${CIG_STORE_PWD}
     depends_on:
       - reasoner_app
   reasoner_app:
     build: 
-      context: ./backend/
+      context: ./TMRWebX/backend/
       dockerfile: Dockerfile
-    image: road2h-swipl
-    container_name: swipl
+    image: road2h-reasoner_ms
+    container_name: reasoner_service
     restart: unless-stopped
-    stdin_open: true # docker run -i
-    tty: true        # docker run -t
-    #expose:
-    #  - 1234
+    env_file: .env
+    stdin_open: true
+    tty: true       
     ports: 
       - "1234:1234"
     networks: 
-      - cig_handler
+      - cig_interaction
     environment:
-      - FUSEKI_HOST_PORT=http://fuseki:3030/
+      - FUSEKI_HOST_PORT=http://store_service:${CIG_STORE_PORT}/
     depends_on: 
-      - fuseki
+      - store_app
+  db:
+    image: mongo:4.4.17
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${MONGODB_PORT}:27017"
+    container_name: mongodb
+    volumes:
+      - ~/mongodata:/data/db
+    networks:
+      - dmims
+      - mongodb_network
+  proxy:
+    build:
+      context: ./cds_hooks_manager/
+      dockerfile: Dockerfile
+    image: cds_hooks_mgmt_ms
+    container_name: hooks_manager_service
+    env_file: .env
+    restart: unless-stopped
+    ports:
+      - "${CDS_HM_PORT}:3000"
+    environment:
+      - MONGODB_HOST=mongodb
+      - MONGODB_PORT=${MONGODB_PORT}
+      - MONGODB_LOGS=${CDS_HM_LOGS}
+      - CDS_SERVICES_MS_HOST=services_manager_service
+      - CDS_SERVICES_MS_PORT=${CDS_SM_PORT}
+      - SNOMEDCT_BASE_URL=${SNOMEDCT_FHIR_SRVR_URL}
+      - PROXY_PORT=${CDS_HM_PORT}
+    links:
+      - db
+    depends_on:
+      - db
+    networks:
+      - dmims
+  cig_exec_engine:
+    build:
+      context: ./cds-services-manager/
+      dockerfile: Dockerfile
+    image: cds_services_mgmt_ms
+    container_name: services_manager_service
+    env_file: .env
+    restart: unless-stopped
+    ports:
+      - "${CDS_SM_PORT}:3010"
+    environment:
+      - MONGODB_PORT=${MONGODB_PORT}
+      - MONGODB_LOGS=${CDS_SM_LOGS}
+      - PORT=${CDS_SM_PORT}
+      - TMR_PORT=${CIG_INTERACTION_PORT}
+      - ARGUMENTATION_ENGINE_URL=${MITIGATION_SERVICE_URL}
+    depends_on: 
+      - db
+    networks:
+      - dmims
+      - cig_interaction
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    environment:
+    - ME_CONFIG_MONGODB_SERVER=mongodb
+    - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+   # - ME_CONFIG_MONGODB_ADMINUSERNAME=root
+   # - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGO_EXPRESS_ADMIN_PWD}
+   # - ME_CONFIG_BASICAUTH_USERNAME=admin
+   # - ME_CONFIG_BASICAUTH_PASSWORD=${MONGO_EXPRESS_BASIC_PWD}
+    #volumes:
+    #  - ~/mongodata
+    depends_on:
+      - db
+    networks:
+    - mongodb_network
+    ports:
+    - 8081:8081
 volumes:
-  drug_volume: {}
+  drug_volume:
+    name: drug_volume
+  mongodata:
+    name: mongodata
 networks:
-  cig_handler: {}
-  dmims: {}
-  #tmrwebx_cig_handler:
-   # external: true
-#volumes: 
- # - ~/mongodata:
+  dmims:
+    name: dmims
+  cig_interaction:
+    name: cig_interaction
+  mongodb_network:
+    name: mongodb_network
