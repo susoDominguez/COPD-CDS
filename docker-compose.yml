@@ -8,18 +8,15 @@ services:
     volumes: 
       - "drug_volume:/fuseki"
   store_app:
-    build: 
-      context: ./TMRWebX/fuseki/
-      dockerfile: Dockerfile
-      args:
+    image: stain/jena-fuseki
+    environment:
       - ADMIN_PASSWORD=${CIG_STORE_PWD}
       - TDB=2
-      - JVM_ARGS=-Xmx2g=value
+      - JVM_ARGS=-Xmx2g
       - FUSEKI_DATASET_1=careActions
       - FUSEKI_DATASET_2=transitions
       - FUSEKI_DATASET_3=beliefs
       - FUSEKI_DATASET_4=CIG-COPD
-    image: road2h_store_ms
     container_name: store_service
     restart: unless-stopped
     env_file: .env
@@ -54,6 +51,8 @@ services:
     build: 
       context: ./TMRWebX/backend/
       dockerfile: Dockerfile
+      args:
+        - FUSEKI_PORT=${CIG_STORE_PORT}
     image: road2h-reasoner_ms
     container_name: reasoner_service
     restart: unless-stopped
@@ -64,8 +63,6 @@ services:
       - "1234:1234"
     networks: 
       - cig_interaction
-    environment:
-      - FUSEKI_HOST_PORT=http://store_service:${CIG_STORE_PORT}/
     depends_on: 
       - store_app
   db:
@@ -117,13 +114,12 @@ services:
       - "${CDS_SM_PORT}:3010"
     environment:
       - MONGODB_PORT=${MONGODB_PORT}
-      - MONGODB_LOGS=${CDS_SM_LOGS}
+      - LOGS=${CDS_SM_LOGS}
       - PORT=${CDS_SM_PORT}
-      - TMR_PORT=${CIG_INTERACTION_PORT}
+      - INTERACTION_PORT=${CIG_INTERACTION_PORT}
       - ARGUMENTATION_ENGINE_URL=${MITIGATION_SERVICE_URL}
     depends_on: 
       - db
-      - mongo-seed
     networks:
       - dmims
       - cig_interaction
