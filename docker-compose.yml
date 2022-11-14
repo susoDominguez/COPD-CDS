@@ -100,7 +100,7 @@ services:
     env_file: .env
     restart: unless-stopped
     ports:
-      - "${CDS_HM_PORT}:3000"
+      - "${CDS_HM_PORT}:${CDS_HM_PORT}"
     environment:
         - MONGODB_HOST=mongodb
         - MONGODB_PORT=${MONGODB_PORT}
