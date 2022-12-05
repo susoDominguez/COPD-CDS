@@ -49,7 +49,7 @@ services:
       - PROLOG_HOST=reasoner_service
       - PROLOG_PORT=1234
     depends_on:
-      - reasoner_app
+     # - reasoner_app
       - store_app
   reasoner_app:
     build: 
@@ -126,8 +126,8 @@ services:
         - PORT=${CDS_SM_PORT}
         - INTERACTION_PORT=${CIG_INTERACTION_PORT}
         - INTERACTION_HOST=interaction_service
-        - ARGUMENTATION_PORT=5000
-        - ARGUMENTATION_HOST=conflict_resolution_service
+       # - ARGUMENTATION_PORT=5000
+        - ARGUMENTATION_HOST=https://aba-plus-g.herokuapp.com/generate_explanations #conflict_resolution_service
         - INTERACTION_DB=tmrweb
     image: cds_services_mgmt_ms
     container_name: services_manager_service
@@ -167,16 +167,16 @@ services:
     build:
       context: ./ABAPlusG/
       dockerfile: Dockerfile
-    #  args:
-       # - ARGUMENTATION_PORT=5000
+      args:
+        - ARGUMENTATION_PORT=5000
     image: argumentation
     container_name: conflict_resolution_service
-    #env_file: .env
+    env_file: .env
     restart: unless-stopped
     ports:
       - "5000:5000"
-   # environment:
-      #  - ARGUMENTATION_PORT=5000
+    environment:
+        - ARGUMENTATION_PORT=5000
     networks:
       - dmims
   mongo-seed:
