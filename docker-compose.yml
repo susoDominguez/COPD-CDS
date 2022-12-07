@@ -94,13 +94,13 @@ services:
         - CDS_SERVICES_MS_HOST=services_manager_service
         - CDS_SERVICES_MS_PORT=${CDS_SM_PORT}
         - SNOMEDCT_BASE_URL=${SNOMEDCT_FHIR_SRVR_URL}
-        - PROXY_PORT=${CDS_HM_PORT}
+        - PROXY_PORT=3001
     image: cds_hooks_mgmt_ms
     container_name: hooks_manager_service
     env_file: .env
     restart: unless-stopped
     ports:
-      - "${CDS_HM_PORT}:${CDS_HM_PORT}"
+      - "${CDS_HM_PORT}:3001"
     environment:
         - MONGODB_HOST=mongodb
         - MONGODB_PORT=${MONGODB_PORT}
@@ -108,7 +108,7 @@ services:
         - CDS_SERVICES_MS_HOST=services_manager_service
         - CDS_SERVICES_MS_PORT=${CDS_SM_PORT}
         - SNOMEDCT_BASE_URL=${SNOMEDCT_FHIR_SRVR_URL}
-        - PROXY_PORT=${CDS_HM_PORT}
+        - PROXY_PORT=3001
     links:
       - db
     depends_on:
@@ -126,8 +126,8 @@ services:
         - PORT=${CDS_SM_PORT}
         - INTERACTION_PORT=${CIG_INTERACTION_PORT}
         - INTERACTION_HOST=interaction_service
-       # - ARGUMENTATION_PORT=5000
-        - ARGUMENTATION_HOST=https://aba-plus-g.herokuapp.com/generate_explanations #conflict_resolution_service
+        - ARGUMENTATION_PORT=5000
+        - ARGUMENTATION_HOST=conflict_resolution_service
         - INTERACTION_DB=tmrweb
     image: cds_services_mgmt_ms
     container_name: services_manager_service
