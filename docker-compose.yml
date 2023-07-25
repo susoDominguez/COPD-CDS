@@ -126,7 +126,7 @@ services:
         - PORT=${CDS_SM_PORT}
         - INTERACTION_PORT=${CIG_INTERACTION_PORT}
         - INTERACTION_HOST=interaction_service
-        - ARGUMENTATION_PORT=5000
+        - ARGUMENTATION_PORT=5001
         - ARGUMENTATION_HOST=conflict_resolution_service
         - INTERACTION_DB=tmrweb
     image: cds_services_mgmt_ms
@@ -142,7 +142,7 @@ services:
         - PORT=${CDS_SM_PORT}
         - INTERACTION_PORT=${CIG_INTERACTION_PORT}
         - INTERACTION_HOST=interaction_service
-        - ARGUMENTATION_PORT=5000
+        - ARGUMENTATION_PORT=5001
         - ARGUMENTATION_HOST=conflict_resolution_service
         - INTERACTION_DB=tmrweb
     depends_on: 
@@ -168,15 +168,15 @@ services:
       context: ./ABAPlusG/
       dockerfile: Dockerfile
       args:
-        - ARGUMENTATION_PORT=5000
+        - ARGUMENTATION_PORT=5001
     image: argumentation
     container_name: conflict_resolution_service
     env_file: .env
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "5001:5000"
     environment:
-        - ARGUMENTATION_PORT=5000
+        - ARGUMENTATION_PORT=5001
     networks:
       - dmims
   mongo-seed:
