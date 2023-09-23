@@ -7,7 +7,7 @@ services:
       - "${REDIS_PORT}:6379"
     container_name: redis
     volumes:
-      - ~/redisData:/data/
+      - "redis_volume:/data"
     networks:
       - dmims
   busybox:
@@ -106,6 +106,8 @@ services:
         - CDS_SERVICES_MS_PORT=${CDS_SM_PORT}
         - SNOMEDCT_BASE_URL=${SNOMEDCT_FHIR_SRVR_URL}
         - PROXY_PORT=3001
+        - REDIS_HOST=redis
+        - REDIS_PORT=6379
     image: cds_hooks_mgmt_ms
     container_name: hooks_manager_service
     env_file: .env
@@ -201,6 +203,8 @@ services:
         networks:
             - mongodb_network
 volumes:
+  redis_volume:
+    name: redis_volume
   drug_volume:
     name: drug_volume
   mongodata:
