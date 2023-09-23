@@ -107,7 +107,12 @@ services:
         - SNOMEDCT_BASE_URL=${SNOMEDCT_FHIR_SRVR_URL}
         - PROXY_PORT=3001
         - REDIS_HOST=redis
-        - REDIS_PORT=6379
+        - REDIS_PORT=${REDIS_PORT}
+        - TTL_SCT=2628288
+        - MONGODB_CIG_MODEL=tmr
+        - MONGODB_CIG_MODEL_2=demo
+        - MONGODB_NONCIG_DB_NAME=non-cig
+
     image: cds_hooks_mgmt_ms
     container_name: hooks_manager_service
     env_file: .env
@@ -122,6 +127,12 @@ services:
         - CDS_SERVICES_MS_PORT=${CDS_SM_PORT}
         - SNOMEDCT_BASE_URL=${SNOMEDCT_FHIR_SRVR_URL}
         - PROXY_PORT=3001
+        - REDIS_HOST=redis
+        - REDIS_PORT=${REDIS_PORT}
+        - TTL_SCT=2628288
+        - MONGODB_CIG_MODEL=tmr
+        - MONGODB_CIG_MODEL_2=demo
+        - MONGODB_NONCIG_DB_NAME=non-cig
     links:
       - db
     depends_on:
