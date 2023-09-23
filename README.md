@@ -15,6 +15,6 @@ A remote, non-proprietary, FHIR- and CDS-Hooks-compliant clinical decision suppo
 
 The system is built on top of *MAGE-DSS*, a **Microservice Architecture for Guideline Embedding in Decision Support Systems**, using the *Transition-based Medical Representation* (TMR) modelling language to represent, and reason about, GOLD COPD 2017.
 
-For installation of all the services that compose the COPD-CDS system, and execution using the use cases from the ROAD2H proof-of-concept evaluation, read the [technical specification document](COPD-CDS_system_installation.docx).
+For installation of all the services that compose the COPD-CDS system, and execution using the use cases from the ROAD2H proof-of-concept evaluation, read the [technical specification document](COPD-CDS_system_installation_v1.1.docx).
 
 
